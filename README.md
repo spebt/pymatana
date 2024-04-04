@@ -1,5 +1,5 @@
-# systemMatrixEval
-The repository contains the codes for evaluating the System Response Matrix directly.  
+# pyMatAna
+The repository contains the python codes for analyzing the system response matrix.
 
 ## PPDF Analysis
 to be filled with contents
