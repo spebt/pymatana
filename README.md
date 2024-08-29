@@ -1,4 +1,4 @@
-# pyMatAna
+# PyMatAna
 The repository contains the python codes for analyzing the system response matrix.
 
 ## PPDF Analysis
