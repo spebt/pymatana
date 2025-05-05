@@ -196,8 +196,8 @@ def get_beam_params(fname: str, output_dir: str, pbar: Progress, task_id_detecto
 
 
 if __name__ == "__main__":
-    input_dir = "/vscratch/grp-rutaoyao/Harsh/24rots/sysmats"  # Directory containing system matrix files
-    output_dir = "/vscratch/grp-rutaoyao/Harsh/24rots/npzs" # Directory to save _beam_params.npz files
+    input_dir = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/sysmats"  # Directory containing system matrix files
+    output_dir = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/npzs" # Directory to save _beam_params.npz files
     os.makedirs(output_dir, exist_ok=True)
 
     pbar = Progress(

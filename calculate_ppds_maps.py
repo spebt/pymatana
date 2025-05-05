@@ -4,8 +4,8 @@ import os
 import matplotlib.pyplot as plt
 from rich.progress import track # Use track for simple loops
 
-INPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24rots/beam_volumes"
-BEAM_DIR = "/vscratch/grp-rutaoyao/Harsh/24rots/npzs"
+INPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/beam_volumes"
+BEAM_DIR = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/npzs"
 OUTPUT_DIR = "results/ppds_maps" # Save maps in a dedicated subdirectory
 N_ROTATIONS = 24
 FOV_X_PIXELS = 512

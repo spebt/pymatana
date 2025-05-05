@@ -4,8 +4,8 @@
 # UB HPC general-compute nodes
 # ===============================================
 
-#SBATCH -n16
-#SBATCH --cpus-per-task=4
+#SBATCH -n32
+#SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=1024M
 #SBATCH --constraint="CASCADE-LAKE-IB"
 
@@ -35,5 +35,5 @@ export I_MPI_PMI_LIBRARY=/opt/software/slurm/lib64/libpmi2.so
 
 # Run your program
 echo "Number of nodes allocated:" "$SLURM_JOB_NUM_NODES"
-PYMATCAL_DIR="/vscratch/grp-rutaoyao/Harsh/24rots"
+PYMATCAL_DIR="/vscratch/grp-rutaoyao/Harsh/24_rots_again"
 srun --mpi=pmi2 python3 "$PYMATCAL_DIR"/ppdf_parallel_npz.py

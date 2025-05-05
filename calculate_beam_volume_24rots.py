@@ -12,9 +12,9 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-INPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24rots/sysmats"
-OUTPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24rots/beam_volumes" # Saving final results here
-BEAM_DIR = "/vscratch/grp-rutaoyao/Harsh/24rots/npzs"
+INPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/sysmats"
+OUTPUT_DIR = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/beam_volumes" # Saving final results here
+BEAM_DIR = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/npzs"
 N_ROTATIONS = 24
 FOV_X_PIXELS = 512
 FOV_Y_PIXELS = 512

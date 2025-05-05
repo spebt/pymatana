@@ -21,11 +21,16 @@ fov_dict = {
     "center": torch.tensor([0.0, 0.0]),
 }
 
-scanner_geometry_dir = "/vscratch/grp-rutaoyao/Harsh/24rots/scanner_cuboids_data_24rots"
+scanner_geometry_dir = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/scanner_cuboids_data"
 file_paths = [
     os.path.join(scanner_geometry_dir, f"scanner_cuboids_{i:03d}.npz")
     for i in range(24)
 ]
+
+output_dir = "/vscratch/grp-rutaoyao/Harsh/24_rots_again/sysmats"
+os.makedirs(output_dir, exist_ok=True)
+print(f"Saving HDF5 output files to: {output_dir}")
+
 
 # Precompute total xtals per file
 xtal_counts = []
@@ -57,7 +62,7 @@ def worker(proc_id, file_indices):
 
     # Each process works on a subset of files based on rank
     for idx in file_indices:
-        filename = f"scanner_ppdfs_{idx}.hdf5"
+        filename = os.path.join(output_dir, f"scanner_ppdfs_{idx}.hdf5")
         
         # Open HDF5 file in append mode with MPI
         with h5py.File(filename, "w") as h5f:
