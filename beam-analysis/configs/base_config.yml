@@ -1,0 +1,28 @@
+# --- Project Paths ---
+paths:
+  # Root directory for layouts and generated data
+  scanner_layouts_dir: "../../../data/scanner_layouts"
+  scanner_layouts_filename: "mph_hourglass_single_position_base_3mm_18pinholes.tensor"
+  
+  # Directory where PPDFs and intermediate outputs are stored
+  data_output_dir: "../../../data/mph_hourglass_single_position_base_3mm_18pinholes_stationary/outputs"
+
+# --- FOV Configuration ---
+fov:
+  n_pixels: [512, 512]
+  mm_per_pixel: [0.25, 0.25]
+  center_coordinates: [0.0, 0.0]
+
+# --- Beam Extraction Parameters ---
+extraction:
+  relative_threshold: 0.01
+  absolute_intensity_floor: 1.0e-7  # Filter for low-intensity noise
+  line_n_samples: 4096
+
+# --- Analysis & Histograms ---
+analysis:
+  n_bins: 360
+  fwhm_min_mm: 0
+  fwhm_max_mm: 9
+  fwhm_column_index: 4
+  multiplex_column_index: 10
