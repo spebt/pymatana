@@ -18,7 +18,7 @@ from scanner_modeling.beam_property_io import (
 def main():
     parser = argparse.ArgumentParser(description="Extract physical beam properties for a SPECT layout.")
     parser.add_argument("layout_idx", type=int)
-    parser.add_argument("--config", default="configs/analysis_config.yml")
+    parser.add_argument("--config", default="configs/base_config.yml")
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
@@ -63,13 +63,13 @@ def main():
         fov_rads = pixels_to_detector_unit_rads(fov_points_xy, detector_unit_centers[i])
         masks = get_beams_masks(fov_rads, boundaries)
         
-        if masks.shape[0] == 0: continue
+        # if masks.shape[0] == 0: continue
 
         # Property Calculations
         weighted_centers = get_beams_weighted_center(masks, fov_points_xy, ppdf_2d)
         fwhm, _, _, _ = get_beam_width(
             weighted_centers, detector_unit_centers[i], masks, ppdf_2d, fov_dict,
-            line_n_samples=cfg['extraction']['line_n_samples']
+            # line_n_samples=cfg['extraction']['line_n_samples']
         )
         angles = get_beams_angle_radian(weighted_centers, detector_unit_centers[i])
         sizes, rel_sens, abs_sens = get_beams_basic_properties(masks, ppdf_2d, fov_points_xy)

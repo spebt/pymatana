@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--masks", help="Optional: single beams_masks_*.hdf5 (for multiplicity bar chart).")
     
     # Configuration
-    parser.add_argument("--config", default="configs/analysis_config.yml", help="Path to centralized config.")
+    parser.add_argument("--config", default="configs/base_config.yml", help="Path to centralized config.")
     parser.add_argument("--out", help="Output directory for plots (overrides config).")
     
     args = parser.parse_args()

@@ -19,7 +19,7 @@ from torch import (
 )
 from torch.nn import functional as F
 
-from geometry_2d_utils import local_max_1d
+from scanner_modeling.geometry_2d_utils import local_max_1d
 
 
 def get_arc_nodes_2d(

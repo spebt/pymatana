@@ -26,7 +26,7 @@ from scanner_modeling.beam_property_io import (
 def main():
     parser = argparse.ArgumentParser(description="Extract beam masks for a specific SPECT layout.")
     parser.add_argument("layout_idx", type=int, help="Index of the layout to process.")
-    parser.add_argument("--config", default="configs/analysis_config.yml", help="Path to the YAML config.")
+    parser.add_argument("--config", default="configs/base_config.yml", help="Path to the YAML config.")
     args = parser.parse_args()
 
     # Load centralized configuration
