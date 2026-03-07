@@ -1,11 +1,11 @@
 # --- Project Paths ---
 paths:
   # Root directory for layouts and generated data
-  scanner_layouts_dir: "/vscratch/grp-rutaoyao/sid/data-test/scanner_layouts"
-  scanner_layouts_filename: "mph_hourglass_single_position_base_3mm_18pinholes_rotated_elliptical.tensor"
+  scanner_layouts_dir: "/vscratch/grp-rutaoyao/sid/data/scanner_layouts"
+  scanner_layouts_filename: "mph_hourglass_single_position_base_2mm_18pinholes_rotated_elliptical.tensor"
   
   # Directory where PPDFs and intermediate outputs are stored
-  data_output_dir: "/vscratch/grp-rutaoyao/sid/data-test/mph_hourglass_single_position_base_3mm_18pinholes_rotated_elliptical/outputs"
+  data_output_dir: "/vscratch/grp-rutaoyao/sid/data/mph_hourglass_single_position_base_2mm_18pinholes_rotated_elliptical_comp/outputs"
 
 # --- FOV Configuration ---
 fov:

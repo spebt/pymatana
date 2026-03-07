@@ -3,12 +3,12 @@
 #SBATCH --job-name=spect_analysis_pipeline
 #SBATCH --cluster=ub-hpc
 #SBATCH --partition=general-compute
-#SBATCH --qos=nih
+#SBATCH --qos=general-compute
 #SBATCH --time=04:00:00                 # Adjusted for full pipeline
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=20               # Multithreading for PPDF and arc sampling
-#SBATCH --mem=4G                       # Significant RAM for HDF5 processing
+#SBATCH --cpus-per-task=10               # Multithreading for PPDF and arc sampling
+#SBATCH --mem=2G                       # Significant RAM for HDF5 processing
 #SBATCH --array=0-39                    # Adjust based on your total layout count
 #SBATCH --mail-user=smehta28@buffalo.edu
 #SBATCH --mail-type=FAIL,END

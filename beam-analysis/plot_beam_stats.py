@@ -1,11 +1,3 @@
-
-"""
-To aggregate a whole folder (like Script 2): 
-python analyze_beam_statistics.py --props-dir path/to/outputs/
-
-To analyze a specific layout with its mask (like Script 1): 
-python analyze_beam_statistics.py --props path/to/props_00.hdf5 --masks path/to/masks_00.hdf5"""
-
 #!/usr/bin/env python3
 import argparse
 import os
@@ -13,6 +5,7 @@ import glob
 import h5py
 import yaml
 import numpy as np
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 import torch
 
@@ -35,6 +28,27 @@ def read_beam_data(h5_path, columns=["FWHM (mm)", "detector unit id"]):
             raise RuntimeError(f"Column '{col}' not found in {h5_path}")
         results[col] = data[:, header.index(col)]
     return results
+
+# --- NEW: Auto-detecting Mask Matrix Loader ---
+def load_mask_matrix(h5_path: str) -> torch.Tensor:
+    """
+    Auto-detects sparse/dense mask formats. 
+    Returns a dense PyTorch tensor for easy unique() counting.
+    """
+    with h5py.File(h5_path, 'r') as h5f:
+        if "data" in h5f:
+            # Load Sparse CSR format via SciPy to avoid PyTorch beta bugs
+            data = h5f["data"][:]
+            indices = h5f["indices"][:]
+            indptr = h5f["indptr"][:]
+            shape = tuple(h5f.attrs["shape"])
+            csr = sp.csr_matrix((data, indices, indptr), shape=shape)
+            return torch.from_numpy(csr.toarray()).to(torch.int32)
+        elif "beam_mask" in h5f:
+            # Load Legacy Dense format
+            return torch.tensor(h5f["beam_mask"][:], dtype=torch.int32)
+        else:
+            raise ValueError(f"Unknown mask format in {h5_path}")
 
 def main():
     parser = argparse.ArgumentParser(description="Unified Beam Statistics: Histogram, Multiplicity, and Aggregation.")
@@ -104,7 +118,7 @@ def main():
     print(f"Beams in {f_min}-{f_max}mm window: {np.sum(good_mask)}")
     print(f"Detectors with >=1 'good' beam: {n_good_det}")
 
-    # 4. Figure 1: FWHM Histogram (Merged logic from Script 1 & 2)
+    # 4. Figure 1: FWHM Histogram
     fig, ax = plt.subplots(figsize=(8, 5), layout="constrained")
     ax.hist(cumulative_fwhm, bins=200 if not args.props_dir else 500, color="#4c72b0", alpha=0.85)
     
@@ -115,18 +129,19 @@ def main():
     ax.set_xlabel("Beam FWHM (mm)", fontsize=14)
     ax.set_ylabel("Number of beams", fontsize=14)
     ax.set_title("Distribution of Beam Widths", fontsize=16)
-    ax.set_xlim([0, 9]) # Standard limit from config analysis
+    ax.set_xlim([0, 9]) 
     ax.legend()
     
     fname = "cumulative_fwhm.png" if args.props_dir else "single_fwhm.png"
     fig.savefig(os.path.join(out_dir, fname), dpi=300)
     print(f"Saved Histogram → {os.path.join(out_dir, fname)}")
 
-    # 5. Figure 2: Multiplicity (from Script 1)
+    # 5. Figure 2: Multiplicity
     if args.masks:
         print(f"Generating Multiplicity Plot from {args.masks}...")
-        with h5py.File(args.masks, "r") as f:
-            masks_data = torch.from_numpy(f["beam_mask"][:])
+        
+        # --- FIX APPLIED HERE ---
+        masks_data = load_mask_matrix(args.masks)
         
         counts = torch.tensor([(row.unique().numel() - 1) for row in masks_data])
         if counts.numel() > 0 and counts.max() > 0:

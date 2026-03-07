@@ -23,6 +23,30 @@ import torch
 import h5py
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, SpinnerColumn
 
+# --- FIX: PyTorch Beta-Bypass Loader for Masks ---
+def load_mask_matrix_dict(h5_path: str) -> dict:
+    """
+    Returns a dictionary of 1D tensors to completely avoid instantiating 
+    the leaky PyTorch SparseCsrTensor beta object.
+    """
+    with h5py.File(h5_path, "r") as h5f:
+        if "data" in h5f:
+            return {
+                "is_sparse": True,
+                # Force int64 for PyTorch indexing compatibility
+                "indptr": torch.tensor(h5f["indptr"][:], dtype=torch.int64),
+                "indices": torch.tensor(h5f["indices"][:], dtype=torch.int64),
+                # Masks use integer IDs, so data is int32
+                "data": torch.tensor(h5f["data"][:], dtype=torch.int32),
+                "shape": tuple(h5f.attrs["shape"])
+            }
+        elif "beam_mask" in h5f:
+            return {
+                "is_sparse": False,
+                "dense_tensor": torch.tensor(h5f["beam_mask"][:], dtype=torch.int32)
+            }
+        else:
+            raise ValueError(f"Unknown mask format in {h5_path}")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate ASCI histogram for a given layout.")
@@ -56,7 +80,7 @@ def main():
         sys.exit(1)
     n_vox = int(n_pixels[0] * n_pixels[1])
 
-    # --- Files (match your new naming convention) ---
+    # --- Files ---
     prop_file = f"beams_properties_configuration_{args.layout_idx:02d}.hdf5"
     mask_file = f"beams_masks_configuration_{args.layout_idx:02d}.hdf5"
 
@@ -71,7 +95,6 @@ def main():
         sys.exit(1)
 
     # --- Bin boundaries: EXACTLY 360 bins across [0, 2π) ---
-    # Use 361 edges (0..2π inclusive), then clamp bin indices into [0,359].
     angular_bin_boundaries = torch.linspace(0.0, 2.0 * torch.pi, steps=n_bins + 1)
 
     with Progress(
@@ -87,16 +110,14 @@ def main():
         # 1) Load data
         with h5py.File(prop_path, "r") as f:
             layout_beams_properties = torch.from_numpy(f["beam_properties"][:])  # shape: (N_beams, K)
-            # header optional, kept for parity with original
             _header = f["beam_properties"].attrs.get("Header", None)
 
-        with h5py.File(mask_path, "r") as f:
-            beams_masks = torch.from_numpy(f["beam_mask"][:])  # shape: (N_detectors, N_pixels_flat)
+        # --- UPDATED: Load mask raw components to avoid PyTorch leaks ---
+        beams_masks_dict = load_mask_matrix_dict(mask_path)
 
         progress.update(task, advance=1)
 
-        # 2) Digitize angles (ONLY ONCE — fixes original duplication bug)
-        # Column 3 is angle, consistent with your original script usage.
+        # 2) Digitize angles
         angles = layout_beams_properties[:, 3]
         digitized_angles = torch.bucketize(angles, angular_bin_boundaries, right=False) - 1
         digitized_angles = digitized_angles.clamp(0, n_bins - 1)
@@ -107,19 +128,14 @@ def main():
 
         progress.update(task, advance=1)
 
-        # 3) Filtering (keep original spirit, but config-driven)
-        # Remove NaN angles
+        # 3) Filtering
         not_nan = ~torch.isnan(layout_beams_properties[:, 3])
         filtered = layout_beams_properties[not_nan]
 
-        # FWHM range filter from config
-        # (Original used "<4" hardcoded; we now use [fwhm_min, fwhm_max] from YAML.)
         fwhm_vals = filtered[:, fwhm_col]
         fwhm_mask = (fwhm_vals >= fwhm_min) & (fwhm_vals <= fwhm_max)
         filtered = filtered[fwhm_mask]
 
-        # Sensitivity filter: keep beams > 1% of max sensitivity (after FWHM filter)
-        # Original used column 7.
         if filtered.shape[0] > 0:
             max_sens = filtered[:, 7].max()
             filtered = filtered[filtered[:, 7] > max_sens * 0.01]
@@ -128,24 +144,35 @@ def main():
 
         # 4) Populate histogram
         asci_histogram = torch.zeros((n_vox, n_bins), dtype=torch.int32)
-
-        # Last appended column is the bin index
         angle_bin_col = filtered.shape[1] - 1
 
-        for beam_props in filtered:
-            detector_idx = int(beam_props[1])
-            beam_idx = int(beam_props[2])
-            angle_bin_idx = int(beam_props[angle_bin_col])
+        # Wrapped in no_grad to guarantee no memory retention
+        with torch.no_grad():
+            for beam_props in filtered:
+                detector_idx = int(beam_props[1])
+                beam_idx = int(beam_props[2])
+                angle_bin_idx = int(beam_props[angle_bin_col])
 
-            # Safety (should already be clamped)
-            if 0 <= angle_bin_idx < n_bins:
-                asci_histogram[beams_masks[detector_idx] == beam_idx, angle_bin_idx] += 1
+                if 0 <= angle_bin_idx < n_bins:
+                    # --- FIX: Reconstruct dense row manually from dict ---
+                    if beams_masks_dict["is_sparse"]:
+                        detector_mask_row = torch.zeros(n_vox, dtype=torch.int32)
+                        start_idx = int(beams_masks_dict["indptr"][detector_idx])
+                        end_idx = int(beams_masks_dict["indptr"][detector_idx + 1])
+                        
+                        if start_idx < end_idx:
+                            cols = beams_masks_dict["indices"][start_idx:end_idx]
+                            vals = beams_masks_dict["data"][start_idx:end_idx]
+                            detector_mask_row[cols] = vals
+                    else:
+                        detector_mask_row = beams_masks_dict["dense_tensor"][detector_idx]
+                        
+                    asci_histogram[detector_mask_row == beam_idx, angle_bin_idx] += 1
 
-        # Save output (keep original filename style; layout-specific)
+        # Save output
         out_file = os.path.join(input_dir, f"asci_histogram_{args.layout_idx:02d}.hdf5")
         with h5py.File(out_file, "w") as f:
             f.create_dataset("asci_histogram", data=asci_histogram.numpy())
-            # optional: store metadata from config
             f["asci_histogram"].attrs["n_bins"] = n_bins
             f["asci_histogram"].attrs["layout_idx"] = args.layout_idx
             f["asci_histogram"].attrs["fwhm_min_mm"] = fwhm_min
@@ -155,7 +182,6 @@ def main():
         progress.update(task, advance=1)
 
     print(f"Saved ASCI histogram to: {out_file}")
-
 
 if __name__ == "__main__":
     main()
