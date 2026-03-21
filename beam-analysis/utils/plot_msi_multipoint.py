@@ -2,21 +2,46 @@ import os
 import h5py
 import torch
 import numpy as np
+import scipy.sparse as sp  # <-- NEW: Required for sparse mask handling
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
+
+# -----------------------------------------------------------------------------
+# 0. AUTO-DETECTING LOADER (NEW)
+# -----------------------------------------------------------------------------
+def load_mask_matrix(h5_path: str):
+    """
+    Auto-detects sparse/dense mask formats. 
+    Always returns a dense NumPy array because the downstream loop 
+    performs heavy column-slicing, which is extremely slow on CSR matrices.
+    """
+    with h5py.File(h5_path, 'r') as h5f:
+        if "data" in h5f:
+            data = h5f["data"][:]
+            indices = h5f["indices"][:]
+            indptr = h5f["indptr"][:]
+            shape = tuple(h5f.attrs["shape"])
+            # Convert CSR directly to a fast 2D NumPy array
+            return sp.csr_matrix((data, indices, indptr), shape=shape).toarray()
+        elif "beam_mask" in h5f:
+            return h5f["beam_mask"][:]
+        else:
+            raise ValueError(f"Unknown mask format in {h5_path}")
 
 # -----------------------------------------------------------------------------
 # 1. DATA LOADING & GEOMETRY UTILS
 # -----------------------------------------------------------------------------
 def load_scanner_resources(base_dir, tensor_path, layout_idx=0):
-    """Loads masks, beam properties, and detector polygons."""
+    """Loads masks, beam properties, and detector polygons (Adaptable to Sparse/Dense)."""
     props_path = os.path.join(base_dir, f"beams_properties_configuration_{layout_idx:02d}.hdf5")
     masks_path = os.path.join(base_dir, f"beams_masks_configuration_{layout_idx:02d}.hdf5")
 
-    with h5py.File(props_path, 'r') as f_p, h5py.File(masks_path, 'r') as f_m:
+    with h5py.File(props_path, 'r') as f_p:
         properties = f_p["beam_properties"][:]
         # header index for 'number of coexisting beams' is 10
-        masks = f_m["beam_mask"][:] 
+    
+    # --- UPDATED: Load mask using auto-detecting loader ---
+    masks = load_mask_matrix(masks_path)
 
     mpxi_lookup = {(int(r[1]), int(r[2])): int(r[10]) for r in properties}
     
@@ -178,8 +203,8 @@ def visualize_results(results, det_verts, out_dir, layout_idx, AND_COND=False, Z
 # 4. MAIN
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    DATA_DIR = "../../../data/system_layout_2mm_36pinholes_rotated/filtered_outputs/mpxi_2"
-    TENSOR_FILE = "../../../data/scanner_layouts/system_layout_2mm_36pinholes_rotated.tensor"
+    DATA_DIR = "../../../data/mph_hourglass_single_position_base_2mm_18pinholes_rotated_elliptical_comp2/outputs"
+    TENSOR_FILE = "../../../data/scanner_layouts/mph_hourglass_single_position_base_2mm_18pinholes_rotated_elliptical.tensor"
     
     AND_COND = True 
     ZOOM_IN = True  
