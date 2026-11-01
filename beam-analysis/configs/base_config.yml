@@ -26,3 +26,11 @@ analysis:
   fwhm_max_mm: 9
   fwhm_column_index: 4
   multiplex_column_index: 10
+
+# --- Design Maps (arg_design_maps.py) ---
+maps:
+  # {layout} is the layout index; the PPDF files matched for a layout (e.g. T8 bed
+  # positions: "position_{layout:03d}_ppdfs_t8_*.hdf5") are averaged
+  ppdf_files: "position_{layout:03d}_ppdfs.hdf5"
+  properties_file: "beams_properties_configuration_{layout:02d}.hdf5"
+  masks_file: "beams_masks_configuration_{layout:02d}.hdf5"
